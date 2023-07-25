@@ -104,6 +104,7 @@ impl CommandsSpawnBullet for Commands<'_, '_> {
 }
 
 fn bullet_sounds(
+    time: Res<Time>,
     bullet_assets: Res<BulletAssets>,
     mut commands: Commands,
     mut ev_bullets: EventReader<EventBulletSpawn>,
@@ -111,15 +112,20 @@ fn bullet_sounds(
 ) {
     for e in ev_bullets.iter() {
         let listener = listener.single();
-        commands.spawn((SpatialAudioBundle {
-            source: bullet_assets.pew1.clone(),
-            settings: PlaybackSettings::ONCE,
-            spatial: SpatialSettings::new(
-                Transform::IDENTITY,
-                5f32,
-                ((e.origin - listener.translation.xy()).normalize_or_zero() * (5f32 / 2f32))
-                    .extend(0f32),
-            ),
-        },));
+        commands.spawn((
+            SpatialAudioBundle {
+                source: bullet_assets.pew1.clone(),
+                settings: PlaybackSettings::ONCE,
+                spatial: SpatialSettings::new(
+                    Transform::IDENTITY,
+                    5f32,
+                    ((e.origin - listener.translation.xy()).normalize_or_zero() * (5f32 / 2f32))
+                        .extend(0f32),
+                ),
+            },
+            DespawnAfter {
+                time_to_destroy: time.elapsed_seconds() + 2f32,
+            },
+        ));
     }
 }
