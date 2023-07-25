@@ -3,6 +3,7 @@
 pub mod ai;
 mod bullets;
 pub mod despawn_after;
+pub mod draw;
 pub mod movement;
 pub mod player;
 pub mod utils;
@@ -19,6 +20,7 @@ use bevy_vector_shapes::prelude::*;
 use ai::*;
 use bullets::*;
 use despawn_after::*;
+use draw::*;
 use movement::*;
 use player::*;
 
@@ -41,6 +43,11 @@ pub struct Health {
 pub struct Cooldown {
     pub start_time: f32,
     pub duration: f32,
+}
+impl Cooldown {
+    fn is_ready(&self, elapsed_seconds: f32) -> bool {
+        self.start_time + self.duration < elapsed_seconds
+    }
 }
 
 pub struct Game;
@@ -88,6 +95,7 @@ impl Default for GameDef {
 impl Plugin for Game {
     fn build(&self, app: &mut App) {
         app.add_plugins(Shape2dPlugin::default());
+        app.add_plugins(BulletPlugin);
         app.init_resource::<GameDef>();
         app.init_resource::<Teams>();
         app.add_event::<EventBulletSpawn>();
@@ -114,7 +122,6 @@ impl Plugin for Game {
                     draw_health,
                     draw_cooldown,
                     draw_pickups,
-                    bullet_sounds,
                 ),
             )
                 .chain(),
@@ -171,79 +178,6 @@ pub fn setup(mut commands: Commands) {
         },
         BloomSettings::default(), // 3. Enable bloom for the camera
     ));
-}
-
-pub fn draw(
-    teams: Res<Teams>,
-    mut gizmos: Gizmos,
-    q_movers: Query<(&Transform, &TeamIdx), With<MoveTarget>>,
-) {
-    for (transform, team) in q_movers.iter() {
-        gizmos.circle_2d(transform.translation.xy(), 5f32, teams.colors[team.0].0);
-    }
-}
-
-pub fn draw_bullets(
-    teams: Res<Teams>,
-    mut gizmos: Gizmos,
-    q_movers: Query<(&Transform, &TeamIdx), With<MoveDirection>>,
-) {
-    for (transform, team) in q_movers.iter() {
-        gizmos.circle_2d(transform.translation.xy(), 2f32, teams.colors[team.0].1);
-    }
-}
-
-pub fn draw_health(mut painter: ShapePainter, q_movers: Query<(&Transform, &Health, &TeamIdx)>) {
-    for (transform, health, team) in q_movers.iter() {
-        if health.max <= health.current {
-            continue;
-        }
-        painter.set_translation(transform.translation);
-
-        let start_angle = 0f32 * 3.0;
-        let end_angle = start_angle + ((health.current / health.max) * TAU);
-
-        painter.thickness = 1f32;
-        painter.hollow = true;
-        painter.color = Color::CRIMSON * 3f32;
-        painter.cap = Cap::None;
-        painter.arc(10f32, start_angle, end_angle);
-    }
-}
-pub fn draw_cooldown(
-    time: Res<Time>,
-    mut painter: ShapePainter,
-    q_movers: Query<(&Transform, &Cooldown, &TeamIdx)>,
-) {
-    for (transform, cooldown, team) in q_movers.iter() {
-        if cooldown.start_time + cooldown.duration < time.elapsed_seconds() {
-            continue;
-        }
-        let ratio = (time.elapsed_seconds() - cooldown.start_time) / cooldown.duration;
-        painter.set_translation(transform.translation);
-
-        let start_angle = 0f32 * 3.0;
-        let end_angle = start_angle + (ratio * TAU);
-
-        painter.thickness = 1f32;
-        painter.hollow = true;
-        painter.color = Color::WHITE;
-        painter.cap = Cap::None;
-        painter.arc(13f32, start_angle, end_angle);
-    }
-}
-pub fn draw_pickups(
-    time: Res<Time>,
-    mut gizmos: Gizmos,
-    q_movers: Query<(&Transform), With<HealthPickup>>,
-) {
-    for (transform) in q_movers.iter() {
-        gizmos.circle_2d(
-            transform.translation.xy(),
-            2f32 + (time.elapsed_seconds() * 3f32).sin(),
-            Color::BLUE * 3f32,
-        );
-    }
 }
 
 pub fn collisions_bullet_health(

@@ -1,10 +1,27 @@
-use bevy::{ecs::system::Command, prelude::*};
+use bevy::{ecs::system::Command, math::Vec3Swizzles, prelude::*};
+use bevy_asset_loader::prelude::*;
 
 use crate::{
     despawn_after::DespawnAfter,
     movement::{MoveDirection, MoveSpeed},
+    player::Player,
     Cooldown, RemoveOnRespawn, TeamIdx,
 };
+
+pub struct BulletPlugin;
+
+impl Plugin for BulletPlugin {
+    fn build(&self, app: &mut App) {
+        app.init_collection::<BulletAssets>();
+        app.add_systems(PostUpdate, bullet_sounds);
+    }
+}
+
+#[derive(AssetCollection, Resource)]
+struct BulletAssets {
+    #[asset(path = "sounds/pew1.ogg")]
+    pew1: Handle<AudioSource>,
+}
 
 #[derive(Event, Debug)]
 pub struct EventBulletSpawn {
@@ -86,16 +103,24 @@ impl CommandsSpawnBullet for Commands<'_, '_> {
     }
 }
 
-pub fn bullet_sounds(
-    asset_server: Res<AssetServer>,
+fn bullet_sounds(
+    bullet_assets: Res<BulletAssets>,
     mut commands: Commands,
     mut ev_bullets: EventReader<EventBulletSpawn>,
+    listener: Query<(&Transform), With<Player>>,
 ) {
     for e in ev_bullets.iter() {
+        let listener = listener.single();
         commands.spawn((SpatialAudioBundle {
-            source: asset_server.load("sounds/pew1.ogg"),
+            source: bullet_assets.pew1.clone(),
             settings: PlaybackSettings::ONCE,
-            spatial: SpatialSettings::new(Transform::IDENTITY, 10f32, Vec3::ZERO),
+            spatial: SpatialSettings::new(
+                Transform::IDENTITY,
+                5f32,
+                (e.origin - listener.translation.xy())
+                    .normalize_or_zero()
+                    .extend(0f32),
+            ),
         },));
     }
 }
