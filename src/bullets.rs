@@ -117,8 +117,7 @@ fn bullet_sounds(
             spatial: SpatialSettings::new(
                 Transform::IDENTITY,
                 5f32,
-                (e.origin - listener.translation.xy())
-                    .normalize_or_zero()
+                ((e.origin - listener.translation.xy()).normalize_or_zero() * (5f32 / 2f32))
                     .extend(0f32),
             ),
         },));
