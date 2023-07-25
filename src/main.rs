@@ -68,7 +68,7 @@ impl Default for Teams {
 pub struct HealthPickup(pub f32);
 
 #[derive(Event)]
-pub struct TryApplyDamages(pub Entity, pub f32);
+pub struct EventTryApplyDamages(pub Entity, pub f32);
 
 #[derive(Resource)]
 pub struct GameDef {
@@ -90,7 +90,8 @@ impl Plugin for Game {
         app.add_plugins(Shape2dPlugin::default());
         app.init_resource::<GameDef>();
         app.init_resource::<Teams>();
-        app.add_event::<TryApplyDamages>();
+        app.add_event::<EventBulletSpawn>();
+        app.add_event::<EventTryApplyDamages>();
         app.add_systems(Startup, setup);
         app.add_systems(
             Update,
@@ -113,6 +114,7 @@ impl Plugin for Game {
                     draw_health,
                     draw_cooldown,
                     draw_pickups,
+                    bullet_sounds,
                 ),
             )
                 .chain(),
@@ -246,7 +248,7 @@ pub fn draw_pickups(
 
 pub fn collisions_bullet_health(
     mut commands: Commands,
-    mut events_try_damage: EventWriter<TryApplyDamages>,
+    mut events_try_damage: EventWriter<EventTryApplyDamages>,
     q_bullets: Query<(Entity, &Transform, &BulletOwner)>,
     q_health: Query<(Entity, &Transform, &Health)>,
 ) {
@@ -256,7 +258,7 @@ pub fn collisions_bullet_health(
                 && bullet_position.translation.distance(t.translation) < 20f32
             {
                 commands.entity(e_bullet).despawn();
-                events_try_damage.send(TryApplyDamages(e, 0.25f32));
+                events_try_damage.send(EventTryApplyDamages(e, 0.25f32));
                 continue;
             }
         }
@@ -281,7 +283,7 @@ pub fn collisions_player_pickups(
 
 pub fn try_apply_damages(
     mut commands: Commands,
-    mut events_try_damage: EventReader<TryApplyDamages>,
+    mut events_try_damage: EventReader<EventTryApplyDamages>,
     mut q_health: Query<(Entity, &Transform, &mut Health)>,
 ) {
     for ev in events_try_damage.iter() {

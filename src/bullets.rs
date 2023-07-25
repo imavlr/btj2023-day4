@@ -6,6 +6,11 @@ use crate::{
     Cooldown, RemoveOnRespawn, TeamIdx,
 };
 
+#[derive(Event, Debug)]
+pub struct EventBulletSpawn {
+    pub origin: Vec2,
+}
+
 pub struct SpawnBulletCommand {
     from_entity: Entity,
     team: TeamIdx,
@@ -36,6 +41,9 @@ impl Command for SpawnBulletCommand {
             self.team,
             RemoveOnRespawn,
         ));
+        world.send_event(EventBulletSpawn {
+            origin: self.from_position,
+        });
     }
 }
 
@@ -75,5 +83,19 @@ impl CommandsSpawnBullet for Commands<'_, '_> {
             team,
         });
         Ok(self)
+    }
+}
+
+pub fn bullet_sounds(
+    asset_server: Res<AssetServer>,
+    mut commands: Commands,
+    mut ev_bullets: EventReader<EventBulletSpawn>,
+) {
+    for e in ev_bullets.iter() {
+        commands.spawn((SpatialAudioBundle {
+            source: asset_server.load("sounds/pew1.ogg"),
+            settings: PlaybackSettings::ONCE,
+            spatial: SpatialSettings::new(Transform::IDENTITY, 10f32, Vec3::ZERO),
+        },));
     }
 }
