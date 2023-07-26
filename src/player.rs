@@ -37,7 +37,7 @@ pub fn handle_clicks_to_fire(
     mut q_attackers: Query<(Entity, &Transform, &MoveTarget, &TeamIdx, &Cooldown), With<Player>>,
     camera: Query<(&GlobalTransform, &Camera)>,
 ) {
-    if buttons.just_released(MouseButton::Left) {
+    if buttons.pressed(MouseButton::Left) {
         if let Some(position) = q_windows.single().cursor_position() {
             if let Some((camera_transform, camera)) = camera.iter().next() {
                 let Some(position) = camera.viewport_to_world_2d(camera_transform, position) else {

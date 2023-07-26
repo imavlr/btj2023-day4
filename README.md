@@ -1,3 +1,6 @@
+# screenshot
+![screenshot](scrot.jpg)
+
 # Bevy GitHub CI Template
 
 This repo show how to set up CI on a GitHub project for Bevy.

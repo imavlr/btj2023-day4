@@ -12,8 +12,8 @@ use std::f32::consts::{PI, TAU};
 
 use bevy::{
     core_pipeline::{bloom::BloomSettings, tonemapping::Tonemapping},
-    math::Vec3Swizzles,
-    prelude::*,
+    math::{Vec3Swizzles, vec2},
+    prelude::*, render::camera::ScalingMode,
 };
 use bevy_vector_shapes::prelude::*;
 
@@ -26,7 +26,13 @@ use player::*;
 
 fn main() {
     App::new()
-        .add_plugins(DefaultPlugins)
+        .add_plugins(DefaultPlugins.set(WindowPlugin {
+            primary_window: Some(Window {
+                fit_canvas_to_parent: true,
+                ..default()
+            }),
+            ..default()
+        }))
         .add_plugins(DespawnAfterPlugin)
         .add_plugins(Game)
         .run();
@@ -105,7 +111,7 @@ impl Plugin for Game {
             Update,
             (
                 (player_respawn),
-                (handle_mouse_to_move, handle_clicks_to_fire),
+                (/*handle_mouse_to_move, */ handle_clicks_to_fire, wasd_movement),
                 (
                     move_targets,
                     move_direction,
@@ -149,9 +155,10 @@ fn player_respawn(
             translation: Vec2::ZERO.extend(2f32),
             ..default()
         },
-        MoveSpeed(100f32),
+        MoveSpeed(130f32),
+        MoveDirection(Vec2::ZERO),
         MoveTarget {
-            target: Some(Vec2::new(200f32, 200f32)),
+            target: Some(Vec2::new(0f32, 0f32)),
         },
         Health {
             current: 1f32,
@@ -166,9 +173,16 @@ fn player_respawn(
     ));
 }
 
-pub fn setup(mut commands: Commands) {
+pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn((
         Camera2dBundle {
+            projection: OrthographicProjection {
+                scaling_mode: ScalingMode::AutoMin {
+                    min_width: 512.0,
+                    min_height: 512.0,
+                },
+                ..default()
+            },
             camera: Camera {
                 hdr: true, // 1. HDR is required for bloom
                 ..default()
@@ -178,6 +192,16 @@ pub fn setup(mut commands: Commands) {
         },
         BloomSettings::default(), // 3. Enable bloom for the camera
     ));
+
+    commands.spawn(SpriteBundle {
+        texture: asset_server.load("bg.jpg"),
+        transform: Transform::from_xyz(0.0, 20.0, 0.0),
+        sprite: Sprite {
+            custom_size: Some(vec2(2048.0 * 1.5 / 2.0, 2048.0 / 2.0)),
+            ..default()
+        },
+        ..default()
+    });
 }
 
 pub fn collisions_bullet_health(
