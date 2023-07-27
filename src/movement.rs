@@ -1,6 +1,7 @@
 use bevy::math::Vec3Swizzles;
 use bevy::prelude::*;
 
+use crate::menu::LastActivity;
 use crate::player::Player;
 use crate::utils::move_towards;
 
@@ -49,23 +50,27 @@ pub fn move_direction(
 pub fn wasd_movement(
     keyboard_input: Res<Input<KeyCode>>,
     mut q_moving: Query<(&mut MoveDirection, &MoveSpeed), With<Player>>,
+    mut last_activity: ResMut<LastActivity>,
 ) {
     for (mut move_direction, speed) in q_moving.iter_mut() {
         let mut direction = Vec2::ZERO;
-        if keyboard_input.pressed(KeyCode::W) {
+        if keyboard_input.pressed(KeyCode::W) || keyboard_input.pressed(KeyCode::Up) {
             direction += Vec2::Y;
         }
-        if keyboard_input.pressed(KeyCode::S) {
+        if keyboard_input.pressed(KeyCode::S) || keyboard_input.pressed(KeyCode::Down) {
             direction -= Vec2::Y;
         }
-        if keyboard_input.pressed(KeyCode::A) {
+        if keyboard_input.pressed(KeyCode::A) || keyboard_input.pressed(KeyCode::Left) {
             direction -= Vec2::X;
         }
-        if keyboard_input.pressed(KeyCode::D) {
+        if keyboard_input.pressed(KeyCode::D) || keyboard_input.pressed(KeyCode::Right) {
             direction += Vec2::X;
         }
         if direction.length_squared() > 0.0 {
             direction = direction.normalize();
+        }
+        if direction != Vec2::ZERO {
+            last_activity.0.reset();
         }
         move_direction.0 = direction;
     }

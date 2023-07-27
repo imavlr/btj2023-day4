@@ -1,21 +1,31 @@
 use bevy::prelude::*;
 
+use crate::menu::GameState;
+
 pub struct DespawnAfterPlugin;
 
 impl Plugin for DespawnAfterPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(PostUpdate, despawn_after);
+        app.add_systems(
+            PostUpdate,
+            despawn_after.run_if(in_state(GameState::Playing)),
+        );
     }
 }
 
 #[derive(Component)]
 pub struct DespawnAfter {
-    pub time_to_destroy: f32,
+    pub timer: Timer,
 }
 
-fn despawn_after(mut commands: Commands, time: Res<Time>, q_des: Query<(Entity, &DespawnAfter)>) {
-    for (e, d) in q_des.iter() {
-        if d.time_to_destroy <= time.elapsed_seconds() {
+fn despawn_after(
+    mut commands: Commands,
+    time: Res<Time>,
+    mut q_des: Query<(Entity, &mut DespawnAfter)>,
+) {
+    for (e, mut d) in q_des.iter_mut() {
+        d.timer.tick(time.elapsed());
+        if d.timer.finished() {
             commands.entity(e).despawn();
         }
     }

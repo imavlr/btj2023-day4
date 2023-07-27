@@ -4,16 +4,16 @@ pub mod ai;
 mod bullets;
 pub mod despawn_after;
 pub mod draw;
+pub mod menu;
 pub mod movement;
 pub mod player;
 pub mod utils;
 
-use std::f32::consts::{PI, TAU};
-
 use bevy::{
     core_pipeline::{bloom::BloomSettings, tonemapping::Tonemapping},
-    math::{Vec3Swizzles, vec2},
-    prelude::*, render::camera::ScalingMode,
+    math::vec2,
+    prelude::*,
+    render::camera::ScalingMode,
 };
 use bevy_vector_shapes::prelude::*;
 
@@ -21,6 +21,7 @@ use ai::*;
 use bullets::*;
 use despawn_after::*;
 use draw::*;
+use menu::*;
 use movement::*;
 use player::*;
 
@@ -102,6 +103,7 @@ impl Plugin for Game {
     fn build(&self, app: &mut App) {
         app.add_plugins(Shape2dPlugin::default());
         app.add_plugins(BulletPlugin);
+        app.add_plugins(MenuPlugin);
         app.init_resource::<GameDef>();
         app.init_resource::<Teams>();
         app.add_event::<EventBulletSpawn>();
@@ -111,7 +113,10 @@ impl Plugin for Game {
             Update,
             (
                 (player_respawn),
-                (/*handle_mouse_to_move, */ handle_clicks_to_fire, wasd_movement),
+                (
+                    /*handle_mouse_to_move, */ handle_clicks_to_fire,
+                    wasd_movement,
+                ),
                 (
                     move_targets,
                     move_direction,
@@ -130,7 +135,8 @@ impl Plugin for Game {
                     draw_pickups,
                 ),
             )
-                .chain(),
+                .chain()
+                .run_if(in_state(GameState::Playing)),
         );
     }
 }
@@ -141,6 +147,7 @@ fn player_respawn(
         Query<Entity, With<Player>>,
         Query<Entity, With<RemoveOnRespawn>>,
     )>,
+    mut game_state: ResMut<NextState<GameState>>,
 ) {
     if q.p0().iter().next().is_some() {
         return;
@@ -171,6 +178,11 @@ fn player_respawn(
         Player,
         TeamIdx(0),
     ));
+    // Go back to menu
+    // This system is called at the begining of the game and triggers the menu,
+    // The game should be started in the Playing state to avoid having a double menu
+    // until this is somehow fixed
+    game_state.0 = Some(GameState::Menu);
 }
 
 pub fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
@@ -253,6 +265,7 @@ pub fn try_apply_damages(
             commands.spawn((
                 HealthPickup(0.1f32),
                 Transform::from_translation(transform.translation),
+                RemoveOnRespawn,
             ));
         }
     }

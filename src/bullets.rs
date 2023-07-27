@@ -3,6 +3,7 @@ use bevy_asset_loader::prelude::*;
 
 use crate::{
     despawn_after::DespawnAfter,
+    menu::GameState,
     movement::{MoveDirection, MoveSpeed},
     player::Player,
     Cooldown, RemoveOnRespawn, TeamIdx,
@@ -13,7 +14,10 @@ pub struct BulletPlugin;
 impl Plugin for BulletPlugin {
     fn build(&self, app: &mut App) {
         app.init_collection::<BulletAssets>();
-        app.add_systems(PostUpdate, bullet_sounds);
+        app.add_systems(
+            PostUpdate,
+            bullet_sounds.run_if(in_state(GameState::Playing)),
+        );
     }
 }
 
@@ -50,7 +54,7 @@ impl Command for SpawnBulletCommand {
             MoveSpeed(400f32),
             MoveDirection(self.to_direction),
             DespawnAfter {
-                time_to_destroy: world.get_resource::<Time>().unwrap().elapsed_seconds() + 1f32,
+                timer: Timer::from_seconds(2000., TimerMode::Once), //Not real seconds either??
             },
             BulletOwner {
                 entity: self.from_entity,
@@ -108,7 +112,7 @@ fn bullet_sounds(
     bullet_assets: Res<BulletAssets>,
     mut commands: Commands,
     mut ev_bullets: EventReader<EventBulletSpawn>,
-    listener: Query<(&Transform), With<Player>>,
+    listener: Query<&Transform, With<Player>>,
 ) {
     for e in ev_bullets.iter() {
         let listener = listener.single();
@@ -124,7 +128,7 @@ fn bullet_sounds(
                 ),
             },
             DespawnAfter {
-                time_to_destroy: time.elapsed_seconds() + 2f32,
+                timer: Timer::from_seconds(2000., TimerMode::Once),
             },
         ));
     }

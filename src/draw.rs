@@ -1,10 +1,6 @@
 use std::f32::consts::TAU;
 
-use bevy::{
-    core_pipeline::{bloom::BloomSettings, tonemapping::Tonemapping},
-    math::Vec3Swizzles,
-    prelude::*,
-};
+use bevy::{math::Vec3Swizzles, prelude::*};
 use bevy_vector_shapes::prelude::*;
 
 use crate::{
@@ -75,9 +71,9 @@ pub fn draw_cooldown(
 pub fn draw_pickups(
     time: Res<Time>,
     mut gizmos: Gizmos,
-    q_movers: Query<(&Transform), With<HealthPickup>>,
+    q_movers: Query<&Transform, With<HealthPickup>>,
 ) {
-    for (transform) in q_movers.iter() {
+    for transform in q_movers.iter() {
         gizmos.circle_2d(
             transform.translation.xy(),
             2f32 + (time.elapsed_seconds() * 3f32).sin(),
